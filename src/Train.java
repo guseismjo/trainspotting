@@ -128,21 +128,20 @@ public class Train extends Thread {
                 permissionEvent();
 
 
-
-
-            } if (sensor.getStatus() == SensorEvent.INACTIVE) {
+            }
+            if (sensor.getStatus() == SensorEvent.INACTIVE) {
 
                 int releaseId = trackIns.getSensorExitTrack().get(sensorId);
                 lastTrack = releaseId;
 
                 if (goingUp == 0 && trackIns.getSensorDirection().get(sensorId) == 1 && Track.semaphoreList.get(releaseId).availablePermits() == 0) {
 
-                    Track.semaphoreList.get(releaseId).release();
+                    Track.semaphoreList.get(lastTrack).release();
                     System.out.println("Semaphore " + releaseId + " released" + " by train " + id);
 
                 } else if (goingUp == 1 && trackIns.getSensorDirection().get(sensorId) == 0 && Track.semaphoreList.get(releaseId).availablePermits() == 0) {
 
-                    Track.semaphoreList.get(releaseId).release();
+                    Track.semaphoreList.get(lastTrack).release();
                     System.out.println("Semaphore " + releaseId + " released" + " by train " + id);
 
                 }
@@ -166,29 +165,29 @@ public class Train extends Thread {
                     }
                     setSpeed(id, -s);
                     //if(goingUp == 0) goingUp = 1;
-                    if(goingUp == 1) goingUp = 0;
-                    System.out.println("Is Train "+id+" going up: "+goingUp);
+                    if (goingUp == 1) goingUp = 0;
+                    System.out.println("Is Train " + id + " going up: " + goingUp);
 
 
-                }else if(trackAcquired == 1 || trackAcquired == 2){
+                } else if (trackAcquired == 1 || trackAcquired == 2) {
 
                     //SET SPEED MINUS
                     try {
-                        Thread.sleep(1000);
+                        Thread.sleep(1000 + (20 * Math.abs(speed)));
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
                     int s = speed;
                     setSpeed(id, 0);
                     try {
-                        Thread.sleep(1000);
+                        Thread.sleep(1000 + (20 * Math.abs(speed)));
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
                     setSpeed(id, -s);
-                    if(goingUp == 0) goingUp = 1;
+                    if (goingUp == 0) goingUp = 1;
                     //if(goingUp == 1) goingUp = 0;
-                    System.out.println("Is Train "+id+" going up: "+goingUp);
+                    System.out.println("Is Train " + id + " going up: " + goingUp);
 
                 }
 
@@ -228,16 +227,15 @@ public class Train extends Thread {
                 // ---------------------
 
 
-
                 // ---------------------
 
                 //switches
 
                 updateSwitches(sensorId, lastTrack, trackToEnterId);
 
-                if(Track.semaphoreList.get(10).availablePermits() == 0){
+                if (Track.semaphoreList.get(10).availablePermits() == 0) {
                     updateSwitches(sensorId, lastTrack, 8);
-                }else if(Track.semaphoreList.get(9).availablePermits() == 0){
+                } else if (Track.semaphoreList.get(9).availablePermits() == 0) {
                     updateSwitches(sensorId, lastTrack, 7);
                 }
 
@@ -246,23 +244,29 @@ public class Train extends Thread {
 
             // if last round in the loop and it didnt break
             if (i + 1 == trackIns.getSensorWhichTracks().get(sensorId).length && Track.semaphoreList.get(lastTrack).availablePermits() == 0) {
-                System.out.println("sleep on sensor " + sensorId);
+                //System.out.println("Last track "+(i + 1 == trackIns.getSensorWhichTracks().get(sensorId).length));
 
+                System.out.println("sleep on sensor " + sensorId);
                 int s = speed;
 
                 setSpeed(id, 0);
+                while (Track.semaphoreList.get(trackToEnterId).availablePermits() == 0) {
+                    //Do nothing :D
+                    System.out.println(trackToEnterId);
+                    System.out.println("Track to enter occupied " + (Track.semaphoreList.get(trackToEnterId).availablePermits() == 0));
+
+                    //permissionEvent();
+                }
 
                 try {
-                    Thread.sleep(5000);
+                    sleep(1000);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
-
-                //permissionEvent();
-
-                setSpeed(id, s);
-
                 updateSwitches(sensorId, lastTrack, trackToEnterId);
+
+                System.out.println("S = "+s);
+                setSpeed(id, s);
 
 
 
@@ -272,10 +276,8 @@ public class Train extends Thread {
                     e.printStackTrace();
                 }
 
-            }if (i + 1 == trackIns.getSensorWhichTracks().get(sensorId).length && Track.semaphoreList.get(lastTrack).availablePermits() == 1){
-                //int s = speed;
-                //setSpeed(id, s);
             }
+
         }
 
 
