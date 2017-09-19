@@ -44,6 +44,37 @@ public class Track {
         return sensorPositions;
     }
 
+    public synchronized boolean acquireSemaphore(int trackToEnterId){
+
+        if(semaphoreList.get(trackToEnterId).availablePermits() == 1){
+            try {
+                semaphoreList.get(trackToEnterId).acquire();
+                return true;
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+                return false;
+            }
+        }
+        return false;
+
+    }
+
+    public synchronized boolean releaseSemaphore(int lastTrack){
+
+        if(semaphoreList.get(lastTrack).availablePermits() == 1){
+
+            System.out.println("WARNING, DOUBLE RELEASE!");
+            return false;
+
+        }else{
+
+            semaphoreList.get(lastTrack).release();
+            return true;
+
+        }
+
+    }
+
     private void initSensorPositions() {
 
         sensorPositions[1] = new Point(3, 13);

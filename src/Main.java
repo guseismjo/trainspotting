@@ -16,7 +16,7 @@ public class Main {
 			Integer train2_speed = Integer.parseInt(args[2]);
 			Integer tsim_speed = (args.length >= 4) ? Integer.parseInt(args[3]) : 20;
 			
-			String tsimCommand = String.format("/usr/local/bin/tsim --speed=%d %s", tsim_speed, map); // /chalmers/groups/tda381/bin/tsim
+			String tsimCommand = String.format("/home/felix/Downloads/tsim/world/bin/tsim --speed=%d %s", tsim_speed, map); // /chalmers/groups/tda381/bin/tsim
 			Process p = Runtime.getRuntime().exec(tsimCommand);
 			TSimInterface.init(p.getInputStream(), p.getOutputStream());
 			TSimInterface.getInstance().setDebug(true);
