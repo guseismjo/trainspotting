@@ -2,6 +2,7 @@ import java.awt.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 
 public class Track {
 
@@ -44,18 +45,35 @@ public class Track {
         return sensorPositions;
     }
 
-    public synchronized boolean acquireSemaphore(int trackToEnterId){
+    public synchronized boolean acquireSemaphore(Train train, int trackToEnterId, int speed, int id, boolean lastIteration){
 
-        if(semaphoreList.get(trackToEnterId).availablePermits() == 1){
-            try {
-                semaphoreList.get(trackToEnterId).acquire();
+        try {
+
+            if(semaphoreList.get(trackToEnterId).tryAcquire()){
+
                 return true;
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+
+            }else{
+
+                if(lastIteration){
+
+                    train.setSpeed(id, 0);
+
+                    if(semaphoreList.get(trackToEnterId).tryAcquire(3000, TimeUnit.MILLISECONDS)){
+                        Thread.sleep(2000);
+                        return true;
+                    }
+                    return false;
+
+                }
                 return false;
+
             }
+
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+            return false;
         }
-        return false;
 
     }
 
