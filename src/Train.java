@@ -45,6 +45,7 @@ public class Train extends Thread {
 
                 if (entry.getKey()[0] == s[0] && entry.getKey()[1] == s[1]) {
                     int switchDir = entry.getValue();
+                    System.out.println("Switch dir: "+switchDir);
                     try {
                         tsi.setSwitch(trackIns.getSwitchesPositions()[value].x, trackIns.getSwitchesPositions()[value].y, switchDir);
                     } catch (CommandException e) {
@@ -59,14 +60,14 @@ public class Train extends Thread {
 
     }
 
-    public Train(int id, TSimInterface tsi, int speed, int goingUp) {
+    public Train(int id, TSimInterface tsi, int speed, int goingUp, int startTrack) {
 
         this.id = id;
         this.tsi = tsi;
         this.speed = speed;
         this.goingUp = goingUp;
         this.trackAcquired = 0;
-        this.lastTrack = 0;
+        this.lastTrack = startTrack;
         this.sensorId = 0;
 
     }
@@ -77,22 +78,13 @@ public class Train extends Thread {
         //int lastTrack = 0;
         //int trackAcquired = 0;
 
-        try {
 
             setSpeed(id, speed);
 
-            if (id == 2) {
-                lastTrack = 2;
-                Track.semaphoreList.get(2).acquire();
-            } else {
-                lastTrack = 10;
-                Track.semaphoreList.get(10).acquire();
-            }
 
-        } catch (InterruptedException e1) {
-            // TODO Auto-generated catch block
-            e1.printStackTrace();
-        }
+            trackIns.acquireSemaphore(lastTrack);
+
+
 
         while (true) {
 
@@ -104,6 +96,8 @@ public class Train extends Thread {
                 e.printStackTrace();
             }
 
+            //---------------------------------Critical section--------------------------------
+
             if (sensor.getStatus() == SensorEvent.ACTIVE) {
 
                 Point point = new Point(sensor.getXpos(), sensor.getYpos());
@@ -114,7 +108,7 @@ public class Train extends Thread {
                     }
                 }
 
-                System.out.println(sensorId + " crossed and going " + goingUp + " --train " + id);
+                System.out.println("Train " + id+ " crossed "+sensorId + " and going " + goingUp  + " at position "+point.x+", "+point.y);
 
 
                 if (goingUp == 1 && trackIns.getSensorDirection().get(sensorId) == 1) { //if the train is going up
@@ -123,32 +117,33 @@ public class Train extends Thread {
                     continue;
                 }
 
-                // --------------------------------------------------------------------------
 
                 permissionEvent();
 
+                // -----------------------------------------------------------------------------
+
 
             }
-            if (sensor.getStatus() == SensorEvent.INACTIVE) {
+            if (sensor.getStatus() == SensorEvent.INACTIVE && sensor.getTrainId() == id) {
 
                 int releaseId = trackIns.getSensorExitTrack().get(sensorId);
                 lastTrack = releaseId;
 
                 if (goingUp == 0 && trackIns.getSensorDirection().get(sensorId) == 1 && Track.semaphoreList.get(releaseId).availablePermits() == 0) {
 
-                    Track.semaphoreList.get(lastTrack).release();
+                    trackIns.releaseSemaphore(lastTrack);
                     System.out.println("Semaphore " + releaseId + " released" + " by train " + id);
 
                 } else if (goingUp == 1 && trackIns.getSensorDirection().get(sensorId) == 0 && Track.semaphoreList.get(releaseId).availablePermits() == 0) {
 
-                    Track.semaphoreList.get(lastTrack).release();
+                    trackIns.releaseSemaphore(lastTrack);
                     System.out.println("Semaphore " + releaseId + " released" + " by train " + id);
 
                 }
 
                 // -----------------------------------------------------------------------------------
 
-                if (trackAcquired == 10 || trackAcquired == 9) {
+                if ((trackAcquired == 10&& sensorId == 14 && goingUp == 1) || (trackAcquired == 9&& sensorId == 15 && goingUp == 1)) {
 
                     //SET SPEED MINUS
                     try {
@@ -159,21 +154,22 @@ public class Train extends Thread {
                     int s = speed;
                     setSpeed(id, 0);
                     try {
-                        Thread.sleep(1000);
+                        Thread.sleep(1000+(20 * Math.abs(speed)));
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
                     setSpeed(id, -s);
                     //if(goingUp == 0) goingUp = 1;
-                    if (goingUp == 1) goingUp = 0;
+                    //if (goingUp == 1)
+                        goingUp = 0;
                     System.out.println("Is Train " + id + " going up: " + goingUp);
 
 
-                } else if (trackAcquired == 1 || trackAcquired == 2) {
+                } else if ((trackAcquired == 1 && sensorId == 1 && goingUp == 0)|| (trackAcquired == 2&& sensorId == 2 && goingUp == 0)) {
 
                     //SET SPEED MINUS
                     try {
-                        Thread.sleep(1000 + (20 * Math.abs(speed)));
+                        Thread.sleep(1000);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
@@ -185,17 +181,18 @@ public class Train extends Thread {
                         e.printStackTrace();
                     }
                     setSpeed(id, -s);
-                    if (goingUp == 0) goingUp = 1;
+                    //if (goingUp == 0)
+                        goingUp = 1;
                     //if(goingUp == 1) goingUp = 0;
                     System.out.println("Is Train " + id + " going up: " + goingUp);
 
                 }
 
-/*
+
                 for (int z = 1; z < 11; z++) {
                     System.out.println("semaphore " + z + " have " + Track.semaphoreList.get(z).availablePermits() + " permits");
                 }
-                */
+
 
             }
 
@@ -213,16 +210,14 @@ public class Train extends Thread {
             if (Track.semaphoreList.get(trackToEnterId).availablePermits() == 1) {
 
 
-                try {
+
 
                     System.out.println("Semaphore " + trackToEnterId + " aquired by train " + id);
                     trackAcquired = trackToEnterId;
-                    Track.semaphoreList.get(trackToEnterId).acquire();
+                    //Track.semaphoreList.get(trackToEnterId).acquire();
 
+                    trackIns.acquireSemaphore(trackToEnterId);
 
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
 
                 // ---------------------
 
@@ -252,8 +247,8 @@ public class Train extends Thread {
                 setSpeed(id, 0);
                 while (Track.semaphoreList.get(trackToEnterId).availablePermits() == 0) {
                     //Do nothing :D
-                    System.out.println(trackToEnterId);
-                    System.out.println("Track to enter occupied " + (Track.semaphoreList.get(trackToEnterId).availablePermits() == 0));
+                    //System.out.println(trackToEnterId);
+                    //System.out.println("Track to enter occupied " + (Track.semaphoreList.get(trackToEnterId).availablePermits() == 0));
 
                     //permissionEvent();
                 }
@@ -277,10 +272,12 @@ public class Train extends Thread {
                 }
 
             }
-
+            updateSwitches(sensorId, lastTrack, trackToEnterId);
         }
 
 
     }
+
+
 
 }

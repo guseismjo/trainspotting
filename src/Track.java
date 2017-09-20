@@ -16,6 +16,28 @@ public class Track {
     private HashMap<Integer, Integer> sensorSwitch;
     private HashMap<int[], Integer> trackToTrack;
 
+    public Track(){
+
+        this.sensorPositions = new Point[17];
+        initSensorPositions();
+        initSemaphore();
+
+
+        this.sensorWhichTracks = new HashMap<>();
+        this.sensorExitTrack = new HashMap<>();
+        this.sensorDirection = new HashMap<>();
+        this.switchesPositions = new Point[4];
+        this.sensorSwitch = new HashMap<>();
+        this.trackToTrack = new HashMap<>();
+        initTrackToTrack();
+        initSensorTracks();
+        initSensorExitTrack();
+        initSensorDirection();
+        initSwitches();
+        initSensorSwitch();
+
+    }
+
     public Point[] getSwitchesPositions() {
         return switchesPositions;
     }
@@ -75,7 +97,7 @@ public class Track {
 
     private void initTrackToTrack() {
 
-        trackToTrack.put(new int[]{1, 3}, 1);
+        trackToTrack.put(new int[]{1, 3}, 2);
         trackToTrack.put(new int[]{2, 3}, 1);
         trackToTrack.put(new int[]{3, 2}, 1);
         trackToTrack.put(new int[]{3, 1}, 2);
@@ -188,25 +210,36 @@ public class Track {
 
 
 
-    public Track(){
-
-        this.sensorPositions = new Point[17];
-        initSensorPositions();
-        initSemaphore();
 
 
-        this.sensorWhichTracks = new HashMap<>();
-        this.sensorExitTrack = new HashMap<>();
-        this.sensorDirection = new HashMap<>();
-        this.switchesPositions = new Point[4];
-        this.sensorSwitch = new HashMap<>();
-        this.trackToTrack = new HashMap<>();
-        initTrackToTrack();
-        initSensorTracks();
-        initSensorExitTrack();
-        initSensorDirection();
-        initSwitches();
-        initSensorSwitch();
+    public synchronized boolean acquireSemaphore(int trackToEnterId){
+
+        if(semaphoreList.get(trackToEnterId).availablePermits() == 1){
+            try {
+                semaphoreList.get(trackToEnterId).acquire();
+                return true;
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+                return false;
+            }
+        }
+        return false;
+
+    }
+
+    public synchronized boolean releaseSemaphore(int lastTrack){
+
+        if(semaphoreList.get(lastTrack).availablePermits() == 1){
+
+            System.out.println("WARNING, DOUBLE RELEASE!");
+            return false;
+
+        }else{
+
+            semaphoreList.get(lastTrack).release();
+            return true;
+
+        }
 
     }
 
