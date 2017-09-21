@@ -129,12 +129,13 @@ public class Train extends Thread {
                 int releaseId = trackIns.getSensorExitTrack().get(sensorId);
                 lastTrack = releaseId;
 
-                if (goingUp == 0 && trackIns.getSensorDirection().get(sensorId) == 1 && Track.semaphoreList.get(releaseId).availablePermits() == 0) {
+                if (goingUp == 0 && trackIns.getSensorDirection().get(sensorId) == 1 && (Track.semaphoreList.get(releaseId).availablePermits()
+                 == 0)) {
 
                     trackIns.releaseSemaphore(lastTrack);
                     System.out.println("Semaphore " + releaseId + " released" + " by train " + id);
 
-                } else if (goingUp == 1 && trackIns.getSensorDirection().get(sensorId) == 0 && Track.semaphoreList.get(releaseId).availablePermits() == 0) {
+                } else if (goingUp == 1 && trackIns.getSensorDirection().get(sensorId) == 0 && (Track.semaphoreList.get(releaseId).availablePermits() == 0)) {
 
                     trackIns.releaseSemaphore(lastTrack);
                     System.out.println("Semaphore " + releaseId + " released" + " by train " + id);
@@ -238,7 +239,7 @@ public class Train extends Thread {
             }
 
             // if last round in the loop and it didnt break
-            if (i + 1 == trackIns.getSensorWhichTracks().get(sensorId).length && Track.semaphoreList.get(lastTrack).availablePermits() == 0) {
+            if (i + 1 == trackIns.getSensorWhichTracks().get(sensorId).length && (Track.semaphoreList.get(lastTrack).availablePermits() == 0)) {
                 //System.out.println("Last track "+(i + 1 == trackIns.getSensorWhichTracks().get(sensorId).length));
 
                 System.out.println("sleep on sensor " + sensorId);
