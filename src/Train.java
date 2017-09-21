@@ -18,6 +18,7 @@ public class Train extends Thread {
     private int trackAcquired;
     private int lastTrack;
     private int sensorId;
+    private int counter;
 
     public void setSpeed(int id, int speed) {
 
@@ -68,6 +69,7 @@ public class Train extends Thread {
         this.trackAcquired = 0;
         this.lastTrack = lastTrack;
         this.sensorId = 0;
+        this.counter = 0;
 
     }
 
@@ -111,11 +113,18 @@ public class Train extends Thread {
 
                 // --------------------------------------------------------------------------
 
-                permissionEvent();
+                if(counter == 0){
+
+                    permissionEvent();
+                    counter = 1;
+
+                }
 
 
             }
             if (sensor.getStatus() == SensorEvent.INACTIVE) {
+
+                int s = speed;
 
 
                 int releaseId = trackIns.getSensorExitTrack().get(sensorId);
@@ -124,12 +133,16 @@ public class Train extends Thread {
                 if (goingUp == 0 && trackIns.getSensorDirection().get(sensorId) == 1) {
 
                     if(trackIns.releaseSemaphore(releaseId))
+                        counter = 0;
+                        setSpeed(id, s);
                         System.out.println("Semaphore " + releaseId + " released" + " by train " + id);
 
 
                 } else if (goingUp == 1 && trackIns.getSensorDirection().get(sensorId) == 0) {
 
                     if(trackIns.releaseSemaphore(releaseId))
+                        counter = 0;
+                        setSpeed(id, s);
                         System.out.println("Semaphore " + releaseId + " released" + " by train " + id);
 
                 }
@@ -139,7 +152,6 @@ public class Train extends Thread {
                 if (trackAcquired == 10 || trackAcquired == 9) {
 
                     //SET SPEED MINUS
-                    int s = speed;
                     try {
                         Thread.sleep(1000);
                     } catch (InterruptedException e) {
@@ -160,7 +172,6 @@ public class Train extends Thread {
                 } else if (trackAcquired == 1 || trackAcquired == 2) {
 
                     //SET SPEED MINUS
-                    int s = speed;
                     try {
                         Thread.sleep(2000 + (20 * Math.abs(speed)));
                     } catch (InterruptedException e) {
@@ -210,6 +221,8 @@ public class Train extends Thread {
 
     private void permissionEvent() {
 
+        System.out.println("Permission event at sensor " + sensorId);
+
         int s = speed;
 
         for (int i = 0; i < trackIns.getSensorWhichTracks().get(sensorId).length; i++) {
@@ -219,24 +232,25 @@ public class Train extends Thread {
             if (sensorId == 9 && Track.semaphoreList.get(10).availablePermits() == 0){
 
                 if(acquire(8, s, id, false))
-                    break;
+                break;
 
             }else if (sensorId == 9 && Track.semaphoreList.get(9).availablePermits() == 0) {
 
                 if(acquire(7, s, id, false))
-                        break;
+                break;
             }
 
             if (i + 1 == trackIns.getSensorWhichTracks().get(sensorId).length){
 
-                if(acquire(trackToEnterId, s, id, true))
+                if(acquire(trackToEnterId, s, id, true)) {
                     setSpeed(id, s);
                     break;
+                }
 
             }
 
             if(acquire(trackToEnterId, s ,id, false))
-                break;
+            break;
 
         }
 
