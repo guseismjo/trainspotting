@@ -7,8 +7,31 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+
 public class Train extends Thread {
 
+    /**
+     * @param sensorPosition
+     * Position of 20 sensors on the map.
+     * @param switchesPosition
+     * Position of the switches.
+     * @param sensorSwitch
+     * Connection between sensors and switches
+     * @param sensorDirection
+     * Direction of switches depending on certain sensors
+     * @param id
+     * ID of the train
+     * @param speed
+     * Speed of the train
+     * @param goingUp
+     * Boolean that tells if the train is going up or not
+     * @param doSomething
+     * @param sensId
+     * Actual id of the sensor
+     * @param tsi
+     * @param previousSensor
+     * Previous sensor to prevent semaphores to be released that shouldn't
+     */
     private Point[] sensorPositions = new Point[21];
     private Point[] switchesPositions = new Point[4];
     private HashMap<Integer, Integer> sensorSwitch = new HashMap<>();
@@ -17,18 +40,17 @@ public class Train extends Thread {
     private int speed;
     private boolean goingUp;
     private boolean doSomething;
-    //private HashMap<Integer, Integer> sensorExitTrack = new HashMap<>();
     private int sensId;
     private TSimInterface tsi;
     private int previousSensor;
 
 
-    public Train(int id, boolean goingUp, int speed, boolean hasSemaphore) {
+    public Train(int id, boolean goingUp, int speed) {
         initSensorSwitch();
         initSensorPositions();
         initSwitches();
         initSensorDirection();
-        initSensorExitTrack();
+
         this.id = id;
         this.sensId = 0;
         this.speed = speed;
@@ -39,28 +61,6 @@ public class Train extends Thread {
 
     }
 
-
-    private void initSensorExitTrack() {
-
-        /*
-
-        sensorExitTrack.put(1,1);
-        sensorExitTrack.put(2, 1);
-        sensorExitTrack.put(3, 0);
-        sensorExitTrack.put(4, 2);
-        sensorExitTrack.put(5,1);
-        sensorExitTrack.put(6, 1);
-        sensorExitTrack.put(7, 3);
-        sensorExitTrack.put(8, 4);
-        sensorExitTrack.put(9, 4);
-        sensorExitTrack.put(10, 3);
-        sensorExitTrack.put(11,3);
-        sensorExitTrack.put(12, 5);
-        sensorExitTrack.put(13, 5);
-        sensorExitTrack.put(14, 5);
-        sensorExitTrack.put(15, 5);
-        */
-    }
 
     private void initSensorDirection() {
 
@@ -120,9 +120,9 @@ public class Train extends Thread {
         sensorPositions[6] = new Point(6, 9);
         sensorPositions[7] = new Point(13, 9);
         sensorPositions[8] = new Point(17, 9);
-        sensorPositions[9] = new Point(18, 7);
+        sensorPositions[9] = new Point(19, 7);
         sensorPositions[10] = new Point(16, 8);
-        sensorPositions[11] = new Point(15, 7);
+        sensorPositions[11] = new Point(14, 7);
         sensorPositions[12] = new Point(10, 7);
         sensorPositions[13] = new Point(9, 8);
         sensorPositions[14] = new Point(6, 7);
@@ -136,28 +136,39 @@ public class Train extends Thread {
 
     }
 
+    /**
+     * @param semaphoreId    ID of the semaphore to be acquired. Set to -1 if not to be acquired.
+     * @param sensorId       ID of the current sensor
+     * @param switchDir      Direction the switch should use. Set to 0 if not to be used.
+     * @param splitTrack     Boolean that tells if we are dealing with a double-track
+     * @param trackToRelease Track to be released. Set to -1 if no track should be released.
+     */
     private void update(int semaphoreId, int sensorId, int switchDir, boolean splitTrack, int trackToRelease) {
-
+/**
+ * Prints a list of available permits for all semaphores.
+ */
         for (int i = 0; i < Lab1.semaphores.size(); i++) {
             System.out.println("sem " + i + " : " + Lab1.semaphores.get(i).availablePermits());
         }
-        //System.out.println("Track to release is: "+trackToRelease +" and possible to release is: "+Lab1.semaphores.get(trackToRelease).tryAcquire());
-
+/**
+ * Sensor and direction correspond to a track to release.
+ */
         if (trackToRelease != -1 && (Lab1.semaphores.get(trackToRelease).availablePermits() == 0)) { //to prevent releasing tracks it shouldn't
 
             Lab1.semaphores.get(trackToRelease).release();
 
         }
-
+/**
+ * We have a double-track and a track should be acquired.
+ */
 
         if (splitTrack && semaphoreId != -1) {
 
 
-
-            if (Lab1.semaphores.get(semaphoreId).tryAcquire()){
-                //int releaseId = sensorExitTrack.get(sensorId);
-                //Lab1.semaphores.get(releaseId).release();
-
+/**
+ * Default way is free.
+ */
+            if (Lab1.semaphores.get(semaphoreId).tryAcquire()) {
 
                 int zwitch = sensorSwitch.get(sensorId);
                 try {
@@ -166,9 +177,10 @@ public class Train extends Thread {
                 } catch (CommandException e) {
                     e.printStackTrace();
                 }
-
-            } else  {
-
+/**
+ * Default way is not free.
+ */
+            } else {
 
 
                 int switchDir2 = (switchDir == 1) ? 2 : 1;
@@ -183,7 +195,9 @@ public class Train extends Thread {
 
             }
 
-
+/**
+ * We have a single track and a track should be acquired.
+ */
 
         } else if (!splitTrack && semaphoreId != -1) {
 
@@ -192,16 +206,8 @@ public class Train extends Thread {
                 try {
                     tsi.setSpeed(id, 0);
 
-                    //Lab1.semaphores.get(semaphoreId).tryAcquire(15000, TimeUnit.MILLISECONDS);
-
                     Lab1.semaphores.get(semaphoreId).acquire();
-                    //hasSemaphore = true;
 
-                    //int releaseId = sensorExitTrack.get(sensorId);
-
-                    //Lab1.semaphores.get(releaseId).release();
-
-                    //Thread.sleep(30000 / Math.abs(speed)); // Denna tiden måste egentligen justeras efter speed, så på låga hastigheter krockar den på vissa ställen
 
                     tsi.setSpeed(id, speed);
                 } catch (Exception e) {
@@ -209,8 +215,12 @@ public class Train extends Thread {
                 }
 
             }
-            if (switchDir != 0) {
 
+            /**
+             * Switches to the correct direction using sensorSwitch.
+             */
+            if (switchDir != 0) {
+                System.out.println("I'm here 3");
                 int zwitch = sensorSwitch.get(sensorId);
                 try {
                     tsi.setSwitch(switchesPositions[zwitch].x, switchesPositions[zwitch].y, switchDir);
@@ -224,8 +234,6 @@ public class Train extends Thread {
 
 
     }
-
-
 
 
     public void run() {
@@ -243,10 +251,12 @@ public class Train extends Thread {
             }
 
             if (sensorEvent.getStatus() == SensorEvent.ACTIVE) {
-                System.out.println("prev sensor: "+previousSensor);
+                System.out.println("prev sensor: " + previousSensor);
 
                 int sensorId = 0;
-
+/**
+ * Finds the actual sensor ID.
+ */
                 for (int i = 1; i < sensorPositions.length; i++) {
 
                     if (sensorEvent.getXpos() == sensorPositions[i].x && sensorEvent.getYpos() == sensorPositions[i].y) {
@@ -255,26 +265,10 @@ public class Train extends Thread {
                     }
 
                 }
-/*
-                if (sensorDirection.get(sensorId) == 1) {
-
-                    if (goingUp) {
-                        doSomething = false;
-                    } else {
-                        doSomething = true;
-                    }
-
-                } else {
-
-                    if (goingUp) {
-                        doSomething = true;
-                    } else {
-                        doSomething = false;
-                    }
-
-                }
-
-*/
+/**
+ * All the sensors and the possible cases for them.
+ * previousTrack is used only at the double-tracks and helps with releasing at the correct moment.
+ */
                 if (doSomething) {
 
                     System.out.println("Train nr: " + id + " passed sensor " + sensorId + " and is going " + goingUp);
@@ -298,7 +292,7 @@ public class Train extends Thread {
 
                     } else if (sensorId == 3) {
                         if (goingUp) {
-                            if(previousSensor == 2) {
+                            if (previousSensor == 2) {
                                 update(-1, 3, 0, false, 0);
                             }
                         } else {
@@ -311,7 +305,7 @@ public class Train extends Thread {
                         if (goingUp) {
                             update(2, 4, 1, true, -1);
                         } else {
-                            if(previousSensor == 6) {
+                            if (previousSensor == 6) {
                                 update(-1, 4, 0, true, 2);
                             }
                         }
@@ -344,7 +338,7 @@ public class Train extends Thread {
 
                     } else if (sensorId == 8) {
                         if (goingUp) {
-                            if(previousSensor == 7) {
+                            if (previousSensor == 7) {
                                 update(-1, 8, 0, true, 2);
                             }
                         } else {
@@ -356,7 +350,7 @@ public class Train extends Thread {
                         if (goingUp) {
                             update(4, 9, 1, true, -1);
                         } else {
-                            if(previousSensor == 10) {
+                            if (previousSensor == 10) {
                                 update(-1, 9, 1, true, 4);
                             }
                         }
@@ -417,7 +411,9 @@ public class Train extends Thread {
                             update(-1, 16, 0, false, 3);
                         }
 
-
+/**
+ * End stations. Negates the speed and the doingUp boolean.
+ */
                     } else if ((sensorId == 17 || sensorId == 18)) {
 
                         if (goingUp) {
@@ -437,6 +433,9 @@ public class Train extends Thread {
 
 
                         }
+/**
+ * End stations. Negates the speed and the doingUp boolean.
+ */
                     } else if ((sensorId == 19 || sensorId == 20)) {
                         if (!goingUp) {
                             int s = speed;
@@ -463,30 +462,10 @@ public class Train extends Thread {
 
 
             } else if (sensorEvent.getStatus() == SensorEvent.INACTIVE) {
-
+/**
+ * Saves previous sensor.
+ */
                 previousSensor = sensId;
-
-
-/*
-        if(doSomething){
-
-            boolean inList = false;
-            for (Map.Entry<Integer, Integer> entry : sensorExitTrack.entrySet()) {
-
-                if(sensId == entry.getKey()) inList = true;
-
-            }
-
-            if(inList){
-                System.out.println("Sensor id för release: "+sensId);
-                int releaseId = sensorExitTrack.get(sensId);
-
-                Lab1.semaphores.get(releaseId).release();
-
-            }
-
-        }
-*/
 
 
             }

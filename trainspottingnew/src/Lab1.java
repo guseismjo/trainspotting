@@ -19,8 +19,8 @@ public class Lab1 {
     semaphores.get(0).drainPermits();
 
 
-    train1 = new Train(1, false, speed1,false);
-    train2 = new Train(2, true, speed2,true);
+    train1 = new Train(1, false, speed1);
+    train2 = new Train(2, true, speed2);
 
     train1.start();
     train2.start();
